@@ -2737,6 +2737,12 @@ class OutlineBuilder extends StackListenerImpl {
   }
 
   @override
+  void handleRecordSpreadField(Token spreadToken) {
+    debugEvent("handleRecordSpreadField");
+    // Spread expression is on the stack; leave it for endRecordLiteral.
+  }
+
+  @override
   void endNamedMixinApplication(
     Token beginToken,
     Token classKeyword,

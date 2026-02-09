@@ -3392,6 +3392,15 @@ abstract class AbstractParserAstListener implements Listener {
   }
 
   @override
+  void handleRecordSpreadField(Token spreadToken) {
+    RecordSpreadFieldHandle data = new RecordSpreadFieldHandle(
+      ParserAstType.HANDLE,
+      spreadToken: spreadToken,
+    );
+    seen(data);
+  }
+
+  @override
   void handlePositionalRecordField(Token token) {
     PositionalRecordFieldHandle data = new PositionalRecordFieldHandle(
       ParserAstType.HANDLE,
@@ -9655,6 +9664,21 @@ class PositionalRecordFieldHandle extends ParserAstNode {
       v.visitPositionalRecordFieldHandle(this);
 }
 
+class RecordSpreadFieldHandle extends ParserAstNode {
+  final Token spreadToken;
+
+  RecordSpreadFieldHandle(ParserAstType type, {required this.spreadToken})
+    : super("RecordSpreadField", type);
+
+  @override
+  Map<String, Object?> get deprecatedArguments =>
+      {"spreadToken": spreadToken};
+
+  @override
+  R accept<R>(ParserAstVisitor<R> v) =>
+      v.visitRecordSpreadFieldHandle(this);
+}
+
 class NewExpressionBegin extends ParserAstNode {
   final Token token;
 
@@ -11088,6 +11112,7 @@ abstract class ParserAstVisitor<R> {
   R visitPatternFieldHandle(PatternFieldHandle node);
   R visitNamedRecordFieldHandle(NamedRecordFieldHandle node);
   R visitPositionalRecordFieldHandle(PositionalRecordFieldHandle node);
+  R visitRecordSpreadFieldHandle(RecordSpreadFieldHandle node);
   R visitNewExpressionBegin(NewExpressionBegin node);
   R visitNewExpressionEnd(NewExpressionEnd node);
   R visitNoArgumentsHandle(NoArgumentsHandle node);
@@ -12340,6 +12365,10 @@ class RecursiveParserAstVisitor implements ParserAstVisitor<void> {
 
   @override
   void visitPositionalRecordFieldHandle(PositionalRecordFieldHandle node) =>
+      node.visitChildren(this);
+
+  @override
+  void visitRecordSpreadFieldHandle(RecordSpreadFieldHandle node) =>
       node.visitChildren(this);
 
   @override
@@ -13829,6 +13858,11 @@ class RecursiveParserAstVisitorWithDefaultNodeAsync
   @override
   Future<void> visitPositionalRecordFieldHandle(
     PositionalRecordFieldHandle node,
+  ) => defaultNode(node);
+
+  @override
+  Future<void> visitRecordSpreadFieldHandle(
+    RecordSpreadFieldHandle node,
   ) => defaultNode(node);
 
   @override

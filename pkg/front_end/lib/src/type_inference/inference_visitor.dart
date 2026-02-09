@@ -14054,7 +14054,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     List<NamedExpression> newNamed = [];
     List<Object> newOriginalOrder = [];
     Map<String, NamedExpression> newNamedElements = {};
-    List<VariableDeclaration>? hoisted;
+    List<VariableDeclaration> hoisted = [];
 
     for (Object element in originalOrder) {
       if (element is RecordSpreadElement) {
@@ -14068,15 +14068,15 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
         // Validate: must be a concrete record type.
         if (spreadType is! RecordType) {
-          // TODO: Report proper error once messages are generated.
-          // For now, treat as a single positional InvalidExpression.
           newPositional.add(
-            helper.buildProblem(
-              templateExpectedRecordType.withArguments(
-                spreadType,
+            problemReporting.buildProblem(
+              compilerContext: compilerContext,
+              message: diag.recordSpreadNotRecordType.withArguments(
+                type: spreadType,
               ),
-              element.fileOffset,
-              3, // length of '...'
+              fileUri: fileUri,
+              fileOffset: element.fileOffset,
+              length: 3, // length of '...'
             ),
           );
           newOriginalOrder.add(newPositional.last);
@@ -14090,7 +14090,6 @@ class InferenceVisitorImpl extends InferenceVisitorBase
             recordType.positional.length + recordType.named.length;
         if (fieldCount > 1 && !node.isConst) {
           temp = createVariable(spreadExpr, recordType);
-          hoisted ??= [];
           hoisted.add(temp);
         }
 
@@ -14125,7 +14124,14 @@ class InferenceVisitorImpl extends InferenceVisitorBase
           )..fileOffset = element.fileOffset;
 
           if (newNamedElements.containsKey(namedType.name)) {
-            // TODO: Report duplicate named field error.
+            problemReporting.addProblem(
+              diag.recordSpreadDuplicateNamedField.withArguments(
+                name: namedType.name,
+              ),
+              element.fileOffset,
+              3,
+              fileUri,
+            );
           } else {
             newNamed.add(namedExpr);
             newNamedElements[namedType.name] = namedExpr;
@@ -14134,7 +14140,14 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         }
       } else if (element is NamedExpression) {
         if (newNamedElements.containsKey(element.name)) {
-          // TODO: Report duplicate named field error.
+          problemReporting.addProblem(
+            diag.recordSpreadDuplicateNamedField.withArguments(
+              name: element.name,
+            ),
+            element.fileOffset,
+            element.name.length,
+            fileUri,
+          );
         } else {
           newNamed.add(element);
           newNamedElements[element.name] = element;
@@ -14175,7 +14188,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     List<Object> originalElementOrder = node.originalElementOrder;
     List<VariableDeclaration>? hoistedExpressions;
 
-    // If spreads were present, update namedElements for the expanded fields.
+    // If spreads were present, rebuild namedElements for the expanded fields.
     if (spreadHoisted != null || namedUnsorted.isNotEmpty) {
       namedElements = <String, NamedExpression>{};
       for (NamedExpression ne in namedUnsorted) {
@@ -14401,6 +14414,16 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         ),
         isConst: node.isConst,
       )..fileOffset = node.fileOffset;
+    }
+    // Merge spread-hoisted variables into hoistedExpressions before Let
+    // wrapping. Spread vars are in forward source order; reverse them so
+    // that after wrapping, the first spread var is outermost (evaluated
+    // first), matching the convention for hoistedExpressions.
+    if (spreadHoisted != null) {
+      hoistedExpressions ??= [];
+      for (int i = spreadHoisted.length - 1; i >= 0; i--) {
+        hoistedExpressions.add(spreadHoisted[i]);
+      }
     }
     if (hoistedExpressions != null) {
       for (VariableDeclaration variable in hoistedExpressions) {

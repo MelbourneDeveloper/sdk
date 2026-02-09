@@ -229,6 +229,18 @@ class Forest {
       ..fileOffset = fileOffset;
   }
 
+  RecordSpreadElement createRecordSpreadElement(
+    int fileOffset,
+    Expression expression, {
+    required bool isNullAware,
+  }) {
+    return RecordSpreadElement(
+      expression,
+      isNullAware: isNullAware,
+      fileOffset: fileOffset,
+    );
+  }
+
   Expression createNullAwareElement(int fileOffset, Expression expression) {
     return new NullAwareElement(expression)..fileOffset = fileOffset;
   }

@@ -242,20 +242,17 @@ class RecordLiteralResolver {
       UnknownInferredType.instance,
     );
 
-    // Handle null-aware spread (`...?`): allow nullable record types by
-    // unwrapping the nullability for field expansion. For non-null-aware
-    // spreads of nullable record types, we still proceed (the CFE will
-    // handle the error during desugaring).
-    if (field.isNullAware &&
-        spreadType is RecordTypeImpl &&
-        spreadType.nullabilitySuffix == NullabilitySuffix.question) {
-      spreadType = spreadType.withNullability(NullabilitySuffix.none);
+    // Null-aware spread (`...?`) is not supported for records because record
+    // field shapes must be statically known — you cannot conditionally
+    // include/exclude fields. Report an error per Step 12.
+    if (field.isNullAware) {
+      // TODO(record-spreads): Report RECORD_SPREAD_NULL_AWARE_NOT_ALLOWED.
+      return;
     }
 
     // Validate: must be a concrete record type.
     if (spreadType is! RecordTypeImpl) {
       // TODO(record-spreads): Report RECORD_SPREAD_NOT_RECORD_TYPE error.
-      // For now, the spread contributes no fields to the result type.
       return;
     }
 
