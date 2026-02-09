@@ -1940,6 +1940,11 @@ class ForwardingListener implements Listener {
   }
 
   @override
+  void handleRecordSpreadField(Token spreadToken) {
+    listener?.handleRecordSpreadField(spreadToken);
+  }
+
+  @override
   void handleNamedMixinApplicationWithClause(Token withKeyword) {
     listener?.handleNamedMixinApplicationWithClause(withKeyword);
   }

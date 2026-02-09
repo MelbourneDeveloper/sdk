@@ -4332,6 +4332,12 @@ class BodyBuilderImpl extends StackListenerImpl
     ];
     if (elements != null) {
       for (Object? element in elements) {
+        if (element is RecordSpreadElement) {
+          // Spread fields can't be validated here because we don't know the
+          // spread's record type yet. Validation is deferred to type inference.
+          originalElementOrder.add(element);
+          continue;
+        }
         if (element is NamedExpression) {
           if (forbiddenObjectMemberNames.contains(element.name)) {
             libraryBuilder.addProblem(
@@ -7671,6 +7677,19 @@ class BodyBuilderImpl extends StackListenerImpl
     );
     Expression value = popForValue();
     push(value);
+  }
+
+  @override
+  void handleRecordSpreadField(Token spreadToken) {
+    debugEvent("RecordSpreadField");
+    // TODO(christianfindlay): Gate behind recordSpreads experiment flag once
+    // codegen is run.
+    Expression value = popForValue();
+    push(RecordSpreadElement(
+      value,
+      isNullAware: spreadToken.lexeme == '...?',
+      fileOffset: spreadToken.charOffset,
+    ));
   }
 
   @override

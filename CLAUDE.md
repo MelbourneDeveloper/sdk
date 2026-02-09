@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Rules
+
+- Do not use Git
+- Follow the convents of the repo and compiler
+
+## Too Many Cooks
+
+- Register immediately
+- Signal intent with plans, messages and locks; listen to the intent of others
+
 ## Repository Overview
 
 This is the **Dart SDK** monorepo — the complete source for the Dart programming language, including compilers, VM runtime, core libraries, analysis tools, and developer tooling.

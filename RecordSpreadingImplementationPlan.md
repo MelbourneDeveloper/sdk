@@ -4,7 +4,7 @@
 
 **Issue:** [dart-lang/language#2128](https://github.com/dart-lang/language/issues/2128)
 
-Dart records currently have no spread operator. This feature adds `...recordExpression` inside record literals and function argument lists, inlining all fields of the record at the spread point:
+Dart records currently have no spread operator. This feature adds `...recordExpression` inside record literals (and eventually argument lists), inlining all fields of the record at the spread point:
 
 ```dart
 (num, num) point = (1, 2);
@@ -13,6 +13,8 @@ Dart records currently have no spread operator. This feature adds `...recordExpr
 ```
 
 **Key constraint:** This is a **purely static** operation. The spread expression must have a concrete record type (not `dynamic`, `Record`, or `T extends Record`). Because the type is known at compile time, the spread can be fully desugared during type inference. **No backend changes are needed** — dart2js, DDC, dart2wasm, and the VM all see a normal `RecordLiteral` after desugaring.
+
+**Scope (first round):** Record literal spreading only. Argument list spreading is deferred to a follow-up round. Steps marked with **[DEFERRED]** are kept for reference but skipped in the initial implementation.
 
 ---
 
@@ -93,7 +95,7 @@ When `...` is seen in record context, it forces `wasRecord = true` (a spread can
 
 ---
 
-## Step 3: Parser — Argument List Spread
+## Step 3: Parser — Argument List Spread **[DEFERRED — second round]**
 
 **File:** [pkg/_fe_analyzer_shared/lib/src/parser/parser_impl.dart](pkg/_fe_analyzer_shared/lib/src/parser/parser_impl.dart)
 
@@ -134,7 +136,7 @@ Token? colon = null;
 
 **File:** [pkg/_fe_analyzer_shared/lib/src/parser/listener.dart](pkg/_fe_analyzer_shared/lib/src/parser/listener.dart) (near line 2043)
 
-Add two new methods:
+Add new method (plus `handleArgumentSpread` **[DEFERRED]**):
 
 ```dart
 /// Called after parsing a spread expression (`...expr` or `...?expr`)
@@ -146,6 +148,7 @@ void handleRecordSpreadField(Token spreadToken) {
   logEvent("RecordSpreadField");
 }
 
+/// [DEFERRED — second round]
 /// Called after parsing a spread expression (`...expr` or `...?expr`)
 /// as an argument in a function argument list.
 ///
@@ -215,7 +218,7 @@ final List<Object /*Expression|NamedExpression*/> originalElementOrder;
 final List<Object /*Expression|NamedExpression|RecordSpreadElement*/> originalElementOrder;
 ```
 
-### 5c. `SpreadArgument` (new class, after `SuperNamedArgument` at line 356)
+### 5c. `SpreadArgument` (new class, after `SuperNamedArgument` at line 356) **[DEFERRED — second round]**
 
 Since `Argument` is `sealed` (line 290), the compiler will enforce exhaustive handling everywhere `Argument` is switched on.
 
@@ -322,7 +325,7 @@ for (Object? element in elements) {
 
 **Important:** The duplicate name checks (line 4353) and `$N` name clash checks (line 4385) cannot be fully performed for spread elements at this stage (we don't know their fields yet). These must be **deferred to type inference** in Step 8.
 
-### 6c. New `handleArgumentSpread()` (near line 7635)
+### 6c. New `handleArgumentSpread()` (near line 7635) **[DEFERRED — second round]**
 
 ```dart
 @override
@@ -341,7 +344,7 @@ void handleArgumentSpread(Token spreadToken) {
 }
 ```
 
-### 6d. Modify `endArguments()` (line 1357)
+### 6d. Modify `endArguments()` (line 1357) **[DEFERRED — second round]**
 
 The existing `switch` at line 1359 only handles `NamedArgument` and `PositionalArgument`. Since `Argument` is `sealed`, adding `SpreadArgument` **will produce a compile error** until we add the case:
 
@@ -390,6 +393,7 @@ RecordSpreadNullAwareNotSupported:
   correctionMessage: "Handle null before spreading, or use a non-nullable expression."
   analyzerCode: RECORD_SPREAD_NULL_AWARE_NOT_SUPPORTED
 
+# [DEFERRED — second round]
 ArgumentSpreadNotRecordType:
   problemMessage: "A spread expression in an argument list must have a record type, but has type '#type'."
   correctionMessage: "Try using an expression with a concrete record type."
@@ -593,7 +597,7 @@ After expansion, perform the checks that were deferred from `endRecordLiteral()`
 
 ---
 
-## Step 9: Type Inference Desugaring — Argument Lists
+## Step 9: Type Inference Desugaring — Argument Lists **[DEFERRED — second round]**
 
 **File:** [pkg/front_end/lib/src/type_inference/inference_visitor_base.dart](pkg/front_end/lib/src/type_inference/inference_visitor_base.dart)
 
@@ -848,7 +852,7 @@ Create test files in `tests/language/record_spreads/`:
 - Spread with additional fields: `(...(1, 2), color: 'red')` → `(int, int, {String color})`
 - Multiple spreads: `(...(1, 2), ...(3, 4))` → `(int, int, int, int)`
 
-### 13b. Argument List Tests (`record_spread_arguments_test.dart`)
+### 13b. Argument List Tests (`record_spread_arguments_test.dart`) **[DEFERRED — second round]**
 - Spread into function call positional args
 - Spread into function call named args
 - Spread into constructor call
@@ -885,7 +889,7 @@ These are files that will need minor updates due to the new AST nodes and parser
 
 1. **Parser test expectations** — `pkg/front_end/parser_testcases/` will need new test cases for record spread parsing
 2. **`InternalRecordLiteral.toTextInternal()`** (internal_ast.dart line 5039) — handle `RecordSpreadElement` in the `originalElementOrder` loop
-3. **All `switch` statements over `sealed class Argument`** — the compiler will flag these; grep for `case PositionalArgument` and `case NamedArgument` to find them all
+3. **All `switch` statements over `sealed class Argument`** — the compiler will flag these; grep for `case PositionalArgument` and `case NamedArgument` to find them all **[DEFERRED — only needed when SpreadArgument is added in second round]**
 4. **Formatter** (`dart_style` package) — will need spread-in-record formatting rules, but this is a separate package and can be deferred
 5. **`pkg/front_end/lib/src/kernel/forest.dart`** — may need a factory method for `RecordSpreadElement`
 
@@ -927,21 +931,25 @@ dart pkg/front_end/tool/update_expectations.dart
 
 ## Implementation Order Summary
 
-| # | Step | Files | Effort |
-|---|------|-------|--------|
-| 1 | Experiment flag | `tools/experimental_features.yaml` + generated | Small |
-| 2 | Parser: record spread | `parser_impl.dart` | Small |
-| 3 | Parser: argument spread | `parser_impl.dart` | Small |
-| 4 | Listener events | `listener.dart`, `forwarding_listener.dart` | Small |
-| 5 | Internal AST nodes | `internal_ast.dart` | Medium |
-| 6 | Body builder handlers | `body_builder.dart` | Medium |
-| 7 | Error messages | `messages.yaml` + generated | Small |
-| 8 | **Type inference: record spread** | **`inference_visitor.dart`** | **Large** |
-| 9 | Type inference: argument spread | `inference_visitor_base.dart` | Large |
-| 10 | Analyzer implementation | `ast.dart`, `ast_builder.dart`, `record_literal_resolver.dart` | Large |
-| 11 | Const evaluation | Verify only, no changes expected | Small |
-| 12 | Null-aware: error message | Covered by Step 7 | None |
-| 13 | Tests | `tests/language/record_spreads/` | Medium |
-| 14 | Fixup exhaustive switches | Various (compiler-guided) | Small |
+| # | Step | Files | Effort | Round |
+|---|------|-------|--------|-------|
+| 1 | Experiment flag | `tools/experimental_features.yaml` + generated | Small | 1st |
+| 2 | Parser: record spread | `parser_impl.dart` | Small | 1st |
+| 3 | Parser: argument spread | `parser_impl.dart` | Small | **DEFERRED** |
+| 4 | Listener events (`handleRecordSpreadField`) | `listener.dart`, `forwarding_listener.dart` | Small | 1st |
+| 5a-b | Internal AST: `RecordSpreadElement` | `internal_ast.dart` | Small | 1st |
+| 5c | Internal AST: `SpreadArgument` | `internal_ast.dart` | Small | **DEFERRED** |
+| 6a-b | Body builder: record spread | `body_builder.dart` | Medium | 1st |
+| 6c-d | Body builder: argument spread | `body_builder.dart` | Medium | **DEFERRED** |
+| 7 | Error messages | `messages.yaml` + generated | Small | 1st |
+| 8 | **Type inference: record spread** | **`inference_visitor.dart`** | **Large** | **1st** |
+| 9 | Type inference: argument spread | `inference_visitor_base.dart` | Large | **DEFERRED** |
+| 10 | Analyzer implementation | `ast.dart`, `ast_builder.dart`, `record_literal_resolver.dart` | Large | 1st |
+| 11 | Const evaluation | Verify only, no changes expected | Small | 1st |
+| 12 | Null-aware: error message | Covered by Step 7 | None | 1st |
+| 13 | Tests (record literal only) | `tests/language/record_spreads/` | Medium | 1st |
+| 14 | Fixup exhaustive switches | Various (compiler-guided) | Small | **DEFERRED** |
 
-Steps 1-7 can be done as a single foundational CL. Steps 8-9 are the core implementation. Step 10 is the parallel analyzer path. Steps 11-14 are verification and testing.
+**First round:** Steps 1, 2, 4, 5a-b, 6a-b, 7, 8, 10, 11, 12, 13. This gets record literal spreading fully working across CFE and analyzer.
+
+**Second round (deferred):** Steps 3, 5c, 6c-d, 9, 13b, 14. Adds argument list spreading on top of the first round.
