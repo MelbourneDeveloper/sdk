@@ -5044,7 +5044,10 @@ class InternalRecordLiteral extends InternalExpression {
     String comma = '';
     for (Object element in originalElementOrder) {
       printer.write(comma);
-      if (element is NamedExpression) {
+      if (element is RecordSpreadElement) {
+        printer.write(element.isNullAware ? '...?' : '...');
+        printer.writeExpression(element.expression);
+      } else if (element is NamedExpression) {
         printer.write(element.name);
         printer.write(': ');
         printer.writeExpression(element.value);

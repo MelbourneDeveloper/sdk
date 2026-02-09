@@ -14028,16 +14028,160 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     return inferExpression(node.expression, typeContext, isVoidAllowed: true);
   }
 
+  /// Expands any [RecordSpreadElement] entries in [node] by inferring the
+  /// spread expression's type and replacing the spread with individual
+  /// [RecordIndexGet]/[RecordNameGet] field accesses.
+  ///
+  /// After this method returns, [node.originalElementOrder] contains only
+  /// [Expression] and [NamedExpression] entries — all spreads are gone.
+  ///
+  /// Returns a list of hoisted [VariableDeclaration]s for spread expressions
+  /// that need single-evaluation semantics, or `null` if none.
+  List<VariableDeclaration>? _expandRecordSpreads(
+    InternalRecordLiteral node,
+  ) {
+    List<Object> originalOrder = node.originalElementOrder;
+    bool hasSpread = false;
+    for (Object element in originalOrder) {
+      if (element is RecordSpreadElement) {
+        hasSpread = true;
+        break;
+      }
+    }
+    if (!hasSpread) return null;
+
+    List<Expression> newPositional = [];
+    List<NamedExpression> newNamed = [];
+    List<Object> newOriginalOrder = [];
+    Map<String, NamedExpression> newNamedElements = {};
+    List<VariableDeclaration>? hoisted;
+
+    for (Object element in originalOrder) {
+      if (element is RecordSpreadElement) {
+        // Infer the type of the spread expression.
+        ExpressionInferenceResult spreadResult = inferExpression(
+          element.expression,
+          const UnknownType(),
+        );
+        Expression spreadExpr = spreadResult.expression;
+        DartType spreadType = spreadResult.inferredType;
+
+        // Validate: must be a concrete record type.
+        if (spreadType is! RecordType) {
+          // TODO: Report proper error once messages are generated.
+          // For now, treat as a single positional InvalidExpression.
+          newPositional.add(
+            helper.buildProblem(
+              templateExpectedRecordType.withArguments(
+                spreadType,
+              ),
+              element.fileOffset,
+              3, // length of '...'
+            ),
+          );
+          newOriginalOrder.add(newPositional.last);
+          continue;
+        }
+        RecordType recordType = spreadType;
+
+        // Hoist to a temp variable if >1 field to avoid re-evaluation.
+        VariableDeclaration? temp;
+        int fieldCount =
+            recordType.positional.length + recordType.named.length;
+        if (fieldCount > 1 && !node.isConst) {
+          temp = createVariable(spreadExpr, recordType);
+          hoisted ??= [];
+          hoisted.add(temp);
+        }
+
+        Expression receiver() {
+          if (temp != null) {
+            return createVariableGet(temp);
+          }
+          return spreadExpr;
+        }
+
+        // Expand positional fields.
+        for (int i = 0; i < recordType.positional.length; i++) {
+          Expression fieldAccess = RecordIndexGet(
+            receiver(),
+            recordType,
+            i,
+          )..fileOffset = element.fileOffset;
+          newPositional.add(fieldAccess);
+          newOriginalOrder.add(fieldAccess);
+        }
+
+        // Expand named fields.
+        for (NamedType namedType in recordType.named) {
+          Expression fieldAccess = RecordNameGet(
+            receiver(),
+            recordType,
+            namedType.name,
+          )..fileOffset = element.fileOffset;
+          NamedExpression namedExpr = NamedExpression(
+            namedType.name,
+            fieldAccess,
+          )..fileOffset = element.fileOffset;
+
+          if (newNamedElements.containsKey(namedType.name)) {
+            // TODO: Report duplicate named field error.
+          } else {
+            newNamed.add(namedExpr);
+            newNamedElements[namedType.name] = namedExpr;
+            newOriginalOrder.add(namedExpr);
+          }
+        }
+      } else if (element is NamedExpression) {
+        if (newNamedElements.containsKey(element.name)) {
+          // TODO: Report duplicate named field error.
+        } else {
+          newNamed.add(element);
+          newNamedElements[element.name] = element;
+          newOriginalOrder.add(element);
+        }
+      } else {
+        Expression expr = element as Expression;
+        newPositional.add(expr);
+        newOriginalOrder.add(expr);
+      }
+    }
+
+    // Replace the node's lists in-place.
+    node.positional
+      ..clear()
+      ..addAll(newPositional);
+    node.named
+      ..clear()
+      ..addAll(newNamed);
+    node.originalElementOrder
+      ..clear()
+      ..addAll(newOriginalOrder);
+
+    return hoisted;
+  }
+
   ExpressionInferenceResult visitInternalRecordLiteral(
     InternalRecordLiteral node,
     DartType typeContext,
   ) {
+    // Expand any record spread elements before main inference.
+    List<VariableDeclaration>? spreadHoisted = _expandRecordSpreads(node);
+
     List<Expression> positional = node.positional;
     List<NamedExpression> namedUnsorted = node.named;
     List<NamedExpression> named = namedUnsorted;
     Map<String, NamedExpression>? namedElements = node.namedElements;
     List<Object> originalElementOrder = node.originalElementOrder;
     List<VariableDeclaration>? hoistedExpressions;
+
+    // If spreads were present, update namedElements for the expanded fields.
+    if (spreadHoisted != null || namedUnsorted.isNotEmpty) {
+      namedElements = <String, NamedExpression>{};
+      for (NamedExpression ne in namedUnsorted) {
+        namedElements[ne.name] = ne;
+      }
+    }
 
     List<DartType>? positionalTypeContexts;
     Map<String, DartType>? namedTypeContexts;

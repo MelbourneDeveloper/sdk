@@ -42,6 +42,13 @@ class RecordLiteralResolver {
     DartType contextType,
   ) {
     if (contextType is! RecordTypeImpl) return null;
+
+    // When spreads are present, we can't match the context type because we
+    // don't know the expanded shape until the spread expressions are resolved.
+    for (var field in node.fields) {
+      if (field is RecordSpreadFieldImpl) return null;
+    }
+
     if (contextType.namedFields.length + contextType.positionalFields.length !=
         node.fields.length) {
       return null;
@@ -75,7 +82,7 @@ class RecordLiteralResolver {
   }
 
   /// Report any named fields in the record literal [node] that use a previously
-  /// defined name.
+  /// defined name, including named fields contributed by spread expressions.
   void _reportDuplicateFieldDefinitions(RecordLiteralImpl node) {
     var usedNames = <String, NamedExpression>{};
     for (var field in node.fields) {
@@ -93,6 +100,19 @@ class RecordLiteralResolver {
         } else {
           usedNames[name] = field;
         }
+      } else if (field is RecordSpreadFieldImpl) {
+        // Check for duplicate named fields contributed by the spread.
+        var spreadType = field.expression.staticType;
+        if (spreadType is RecordTypeImpl) {
+          for (var namedField in spreadType.namedFields) {
+            if (usedNames.containsKey(namedField.name)) {
+              // TODO(record-spreads): Report RECORD_SPREAD_DUPLICATE_NAMED_FIELD
+              // with a diagnostic pointing at the spread operator.
+            }
+            // Don't add to usedNames here — we can't point at a specific
+            // NamedExpression node for spread-contributed fields.
+          }
+        }
       }
     }
   }
@@ -100,9 +120,15 @@ class RecordLiteralResolver {
   /// Report any fields in the record literal [node] that use an invalid name.
   void _reportInvalidFieldNames(RecordLiteralImpl node) {
     var fields = node.fields;
+    // Count total positional fields, including those contributed by spreads.
     var positionalCount = 0;
     for (var field in fields) {
-      if (field is! NamedExpression) {
+      if (field is RecordSpreadFieldImpl) {
+        var spreadType = field.expression.staticType;
+        if (spreadType is RecordTypeImpl) {
+          positionalCount += spreadType.positionalFields.length;
+        }
+      } else if (field is! NamedExpression) {
         positionalCount++;
       }
     }
@@ -127,6 +153,8 @@ class RecordLiteralResolver {
           }
         }
       }
+      // TODO(record-spreads): Also validate named fields from spreads
+      // (e.g. private names, forbidden names, positional clashes).
     }
   }
 
@@ -163,7 +191,9 @@ class RecordLiteralResolver {
     var contextTypeAsRecord = _matchContextType(node, contextType);
     var index = 0;
     for (var field in node.fields) {
-      if (field is NamedExpressionImpl) {
+      if (field is RecordSpreadFieldImpl) {
+        _resolveSpreadField(field, positionalFields, namedFields);
+      } else if (field is NamedExpressionImpl) {
         var name = field.name.label.name;
         var fieldContextType =
             contextTypeAsRecord?.namedField(name)!.type ??
@@ -194,6 +224,57 @@ class RecordLiteralResolver {
       ),
       resolver: _resolver,
     );
+  }
+
+  /// Resolve a spread field in a record literal.
+  ///
+  /// Infers the type of the spread expression, validates that it is a concrete
+  /// record type, and expands its positional and named fields into the
+  /// corresponding result type lists.
+  void _resolveSpreadField(
+    RecordSpreadFieldImpl field,
+    List<RecordTypePositionalFieldImpl> positionalFields,
+    List<RecordTypeNamedFieldImpl> namedFields,
+  ) {
+    // Resolve the inner expression.
+    var spreadType = _resolveField(
+      field.expression,
+      UnknownInferredType.instance,
+    );
+
+    // Handle null-aware spread (`...?`): allow nullable record types by
+    // unwrapping the nullability for field expansion. For non-null-aware
+    // spreads of nullable record types, we still proceed (the CFE will
+    // handle the error during desugaring).
+    if (field.isNullAware &&
+        spreadType is RecordTypeImpl &&
+        spreadType.nullabilitySuffix == NullabilitySuffix.question) {
+      spreadType = spreadType.withNullability(NullabilitySuffix.none);
+    }
+
+    // Validate: must be a concrete record type.
+    if (spreadType is! RecordTypeImpl) {
+      // TODO(record-spreads): Report RECORD_SPREAD_NOT_RECORD_TYPE error.
+      // For now, the spread contributes no fields to the result type.
+      return;
+    }
+
+    // Expand positional fields from the spread's record type.
+    for (var posField in spreadType.positionalFields) {
+      positionalFields.add(
+        RecordTypePositionalFieldImpl(type: posField.type),
+      );
+    }
+
+    // Expand named fields from the spread's record type.
+    for (var namedField in spreadType.namedFields) {
+      namedFields.add(
+        RecordTypeNamedFieldImpl(
+          name: namedField.name,
+          type: namedField.type,
+        ),
+      );
+    }
   }
 
   /// Returns whether [name] is a name forbidden for record fields because it

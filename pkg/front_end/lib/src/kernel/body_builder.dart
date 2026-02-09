@@ -4301,6 +4301,7 @@ class BodyBuilderImpl extends StackListenerImpl
           unionOfKinds([
             ValueKinds.Expression,
             ValueKinds.NamedExpression,
+            ValueKinds.RecordSpreadElement,
             ValueKinds.ParserRecovery,
           ]),
           count,

@@ -156,6 +156,8 @@ class ValueKinds {
   static const ValueKind Name = const SingleValueKind<type.String>();
   static const ValueKind NamedExpression =
       const SingleValueKind<type.NamedExpression>();
+  static const ValueKind RecordSpreadElement =
+      const SingleValueKind<type.RecordSpreadElement>();
   static const ValueKind NameList = const SingleValueKind<List<type.String>>();
   static const ValueKind NameListOrNull =
       const SingleValueKind<List<type.String>>(NullValues.IdentifierList);
