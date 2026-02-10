@@ -14040,9 +14040,12 @@ class InferenceVisitorImpl extends InferenceVisitorBase
   /// After this method returns, [node.originalElementOrder] contains only
   /// [Expression] and [NamedExpression] entries — all spreads are gone.
   ///
-  /// Returns a list of hoisted [VariableDeclaration]s for spread expressions
-  /// that need single-evaluation semantics, or `null` if there are no spreads.
-  List<VariableDeclaration>? _expandRecordSpreads(
+  /// Returns a map from index in [newOriginalOrder] to the hoisted
+  /// [VariableDeclaration] for the spread at that position, or `null` if there
+  /// are no spreads. The key is the index of the first expanded field from each
+  /// spread, so that the caller can insert the temp at the correct position
+  /// in the hoisting chain for proper evaluation order.
+  Map<int, VariableDeclaration>? _expandRecordSpreads(
     InternalRecordLiteral node,
   ) {
     List<Object> originalOrder = node.originalElementOrder;
@@ -14059,7 +14062,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     List<NamedExpression> newNamed = [];
     List<Object> newOriginalOrder = [];
     Map<String, NamedExpression> newNamedElements = {};
-    List<VariableDeclaration> hoisted = [];
+    Map<int, VariableDeclaration> spreadTempsByIndex = {};
 
     for (Object element in originalOrder) {
       if (element is RecordSpreadElement) {
@@ -14122,7 +14125,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
             type: recordType,
             isFinal: true,
           )..fileOffset = spreadExpr.fileOffset;
-          hoisted.add(temp);
+          spreadTempsByIndex[newOriginalOrder.length] = temp;
         }
 
         bool isFirstReceiverUse = true;
@@ -14221,7 +14224,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       ..clear()
       ..addAll(newOriginalOrder);
 
-    return hoisted.isNotEmpty ? hoisted : null;
+    return spreadTempsByIndex.isNotEmpty ? spreadTempsByIndex : null;
   }
 
   ExpressionInferenceResult visitInternalRecordLiteral(
@@ -14229,7 +14232,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     DartType typeContext,
   ) {
     // Expand any record spread elements before main inference.
-    List<VariableDeclaration>? spreadHoisted = _expandRecordSpreads(node);
+    Map<int, VariableDeclaration>? spreadTemps = _expandRecordSpreads(node);
 
     List<Expression> positional = node.positional;
     List<NamedExpression> namedUnsorted = node.named;
@@ -14239,7 +14242,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     List<VariableDeclaration>? hoistedExpressions;
 
     // If spreads were present, rebuild namedElements for the expanded fields.
-    if (spreadHoisted != null || namedUnsorted.isNotEmpty) {
+    if (spreadTemps != null || namedUnsorted.isNotEmpty) {
       namedElements = <String, NamedExpression>{};
       for (NamedExpression ne in namedUnsorted) {
         namedElements[ne.name] = ne;
