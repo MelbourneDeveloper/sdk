@@ -4334,8 +4334,8 @@ class BodyBuilderImpl extends StackListenerImpl
     if (elements != null) {
       for (Object? element in elements) {
         if (element is RecordSpreadElement) {
-          // Spread fields can't be validated here because we don't know the
-          // spread's record type yet. Validation is deferred to type inference.
+          // Spread fields cannot be validated here because the record type of
+          // the spread is not yet known. Validation happens in type inference.
           originalElementOrder.add(element);
           continue;
         }
@@ -7683,8 +7683,8 @@ class BodyBuilderImpl extends StackListenerImpl
   @override
   void handleRecordSpreadField(Token spreadToken) {
     debugEvent("RecordSpreadField");
-    // TODO(christianfindlay): Gate behind recordSpreads experiment flag once
-    // codegen is run.
+    // TODO(christianfindlay): Guard behind recordSpreads experiment flag once
+    // code generation is enabled.
     Expression value = popForValue();
     push(RecordSpreadElement(
       value,

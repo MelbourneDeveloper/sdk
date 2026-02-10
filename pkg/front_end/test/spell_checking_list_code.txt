@@ -260,6 +260,7 @@ checkpoint
 checksum
 checksums
 chloestefantsova
+christianfindlay
 chunks
 ci
 circuit
@@ -1183,6 +1184,7 @@ nc
 ncs
 ncurses
 nd
+ne
 near
 negatable
 neighboring

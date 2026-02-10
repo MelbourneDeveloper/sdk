@@ -5,7 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Rules
 
 - Do not use Git
-- Follow the convents of the repo and compiler
+- Follow the conventions of the repo and compiler
+- #1 Priority: no duplication
+
+## Critical Docs
+
+- [Dart SDK](https://dart.dev/tools/sdk)
+- [Building Dart](docs/Building.md)
+- [Testing Dart](docs/Testing.md)
 
 ## Too Many Cooks
 

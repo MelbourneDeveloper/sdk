@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Fetch only the Dart third_party dependencies needed for pub resolution.
+# Fetch the Dart third_party dependencies needed for package_config.json.
 # This is a lightweight alternative to full `gclient sync` when you only need
-# to run `dart pub get` / `dart analyze` / `dart test` on pkg/ packages.
+# to run `dart analyze` / `dart test` on packages under pkg/.
+# NOTE: The Dart SDK does NOT use `dart pub get`. Package resolution is done
+# via `python3 tools/generate_package_config.py`.
 set -euo pipefail
 
 SDK_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
@@ -92,8 +94,8 @@ echo "=== Generating package config ==="
 BOOTSTRAP_DART="$SDK_ROOT/tools/sdks/dart-sdk/bin/dart"
 if [ -x "$BOOTSTRAP_DART" ]; then
   python3 "$SDK_ROOT/tools/generate_package_config.py" && ok "package_config.json generated" || {
-    warn "generate_package_config.py failed — trying direct pub get"
-    "$BOOTSTRAP_DART" pub get --directory="$SDK_ROOT" || warn "pub get failed"
+    fail "generate_package_config.py failed. Check that all third_party/pkg/ deps are present."
+    exit 1
   }
 else
   fail "Bootstrapping SDK not found. Run the setup skill first."

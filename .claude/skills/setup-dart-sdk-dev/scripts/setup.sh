@@ -112,7 +112,10 @@ do_check() {
   if [ "$issues" -eq 0 ]; then
     ok "Environment looks good. Use the bootstrapping SDK:"
     echo "    $BOOTSTRAP_DART analyze pkg/front_end"
-    echo "    $BOOTSTRAP_DART test pkg/analyzer"
+    echo "    $BOOTSTRAP_DART analyze pkg/analyzer"
+    echo ""
+    echo "  NOTE: Do NOT use 'dart pub get'. Use this instead:"
+    echo "    python3 $SDK_ROOT/tools/generate_package_config.py"
   else
     warn "$issues issue(s) found. Run 'bash $0 setup' to fix."
   fi
