@@ -260,7 +260,6 @@ checkpoint
 checksum
 checksums
 chloestefantsova
-christianfindlay
 chunks
 ci
 circuit
