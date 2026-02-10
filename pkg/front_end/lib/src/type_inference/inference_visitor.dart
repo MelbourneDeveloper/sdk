@@ -14089,12 +14089,24 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         }
         RecordType recordType = spreadType;
 
-        // Hoist to a temp variable if >1 field to avoid re-evaluation.
+        // Hoist to a temp variable to avoid re-evaluation and to ensure the
+        // receiver is an InternalExpressionVariable that the inference visitor
+        // can handle (already-inferred Kernel expressions like
+        // StaticInvocation crash when re-inferred).
         VariableDeclaration? temp;
         int fieldCount =
             recordType.positional.length + recordType.named.length;
-        if (fieldCount > 1 && !node.isConst) {
-          temp = createVariable(spreadExpr, recordType);
+        if (fieldCount >= 1 && !node.isConst) {
+          // Use VariableDeclarationImpl (not createVariable) because the
+          // VariableGet receivers of the expanded RecordIndexGet/RecordNameGet
+          // nodes go through visitVariableGet → inferVariableGet, which
+          // requires InternalExpressionVariable.
+          temp = VariableDeclarationImpl(
+            null,
+            initializer: spreadExpr,
+            type: recordType,
+            isFinal: true,
+          )..fileOffset = spreadExpr.fileOffset;
           hoisted.add(temp);
         }
 

@@ -38,9 +38,11 @@ void main() {
   Expect.equals(3, combined.$3);
   Expect.equals(4, combined.$4);
 
-  // Const identity: spreading and reassembling should produce identical const.
+  // Const identity: spreading preserves identity.
   const original = (1, 2, name: 'test');
-  const rebuilt = (original.$1, original.$2, name: original.name);
   const viaSpread = (...original);
-  Expect.identical(rebuilt, viaSpread);
+  Expect.equals(1, viaSpread.$1);
+  Expect.equals(2, viaSpread.$2);
+  Expect.equals('test', viaSpread.name);
+  Expect.identical(original, viaSpread);
 }
