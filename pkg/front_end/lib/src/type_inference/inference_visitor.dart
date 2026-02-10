@@ -14262,8 +14262,8 @@ class InferenceVisitorImpl extends InferenceVisitorBase
     // If spreads were present, rebuild namedElements for the expanded fields.
     if (spreadTemps != null || namedUnsorted.isNotEmpty) {
       namedElements = <String, NamedExpression>{};
-      for (NamedExpression ne in namedUnsorted) {
-        namedElements[ne.name] = ne;
+      for (NamedExpression namedExpr in namedUnsorted) {
+        namedElements[namedExpr.name] = namedExpr;
       }
     }
 

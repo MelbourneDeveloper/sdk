@@ -1184,7 +1184,6 @@ nc
 ncs
 ncurses
 nd
-ne
 near
 negatable
 neighboring
