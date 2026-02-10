@@ -167,8 +167,32 @@ class RecordLiteralResolver {
           }
         }
       }
-      // TODO(record-spreads): Also validate named fields from spreads
-      // (e.g. private names, forbidden names, positional clashes).
+      else if (field is RecordSpreadFieldImpl) {
+        var spreadType = field.expression.staticType;
+        if (spreadType is RecordTypeImpl) {
+          for (var namedField in spreadType.namedFields) {
+            var name = namedField.name;
+            if (name.startsWith('_')) {
+              _diagnosticReporter.report(
+                diag.invalidFieldNamePrivate.at(field.spreadOperator),
+              );
+            } else {
+              var index = RecordTypeExtension.positionalFieldIndex(name);
+              if (index != null) {
+                if (index < positionalCount) {
+                  _diagnosticReporter.report(
+                    diag.invalidFieldNamePositional.at(field.spreadOperator),
+                  );
+                }
+              } else if (isForbiddenNameForRecordField(name)) {
+                _diagnosticReporter.report(
+                  diag.invalidFieldNameFromObject.at(field.spreadOperator),
+                );
+              }
+            }
+          }
+        }
+      }
     }
   }
 

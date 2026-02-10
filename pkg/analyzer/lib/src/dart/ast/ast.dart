@@ -23859,9 +23859,7 @@ final class RecordSpreadFieldImpl extends ExpressionImpl
 
   @override
   E? accept<E>(AstVisitor<E> visitor) {
-    // TODO(record-spreads): Add visitRecordSpreadField to AstVisitor
-    // generation and use visitor.visitRecordSpreadField(this) here.
-    return expression.accept(visitor);
+    return visitor.visitRecordSpreadField(this);
   }
 
   @override
