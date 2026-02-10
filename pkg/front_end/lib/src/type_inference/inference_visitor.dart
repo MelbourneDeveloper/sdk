@@ -14124,6 +14124,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
             initializer: spreadExpr,
             type: recordType,
             isFinal: true,
+            isSynthesized: true,
           )..fileOffset = spreadExpr.fileOffset;
           spreadTempsByIndex[newOriginalOrder.length] = temp;
         }
@@ -14377,7 +14378,9 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       final bool enableHoisting = !node.isConst;
 
       // Set to `true` if we need to hoist all preceding elements.
-      bool needsHoisting = false;
+      // When spreads are present, all non-pure expressions must be hoisted to
+      // ensure correct evaluation order relative to spread temp variables.
+      bool needsHoisting = spreadTemps != null ? enableHoisting : false;
 
       // Set to `true` if named elements need to be sorted. This implies that
       // we will need to hoist preceding elements.
@@ -14428,6 +14431,14 @@ class InferenceVisitorImpl extends InferenceVisitorBase
           }
           positionalIndex--;
         }
+        // If this index is the first expanded field from a spread, insert
+        // the spread temp variable here. Being added after the field access
+        // in the reversed walk means the temp is outermost in the Let chain
+        // (evaluated first), preserving left-to-right evaluation order.
+        if (spreadTemps != null && spreadTemps.containsKey(index)) {
+          hoistedExpressions ??= [];
+          hoistedExpressions.add(spreadTemps[index]!);
+        }
       }
       namedTypes = new List<NamedType>.generate(sortedNames.length, (
         int index,
@@ -14467,16 +14478,6 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         ),
         isConst: node.isConst,
       )..fileOffset = node.fileOffset;
-    }
-    // Merge spread-hoisted variables into hoistedExpressions before Let
-    // wrapping. Spread vars are in forward source order; reverse them so
-    // that after wrapping, the first spread var is outermost (evaluated
-    // first), matching the convention for hoistedExpressions.
-    if (spreadHoisted != null) {
-      hoistedExpressions ??= [];
-      for (int i = spreadHoisted.length - 1; i >= 0; i--) {
-        hoistedExpressions.add(spreadHoisted[i]);
-      }
     }
     if (hoistedExpressions != null) {
       for (VariableDeclaration variable in hoistedExpressions) {
