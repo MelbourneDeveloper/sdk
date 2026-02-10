@@ -341,6 +341,15 @@ class ExperimentalFlag {
     experimentReleasedVersion: defaultLanguageVersion,
   );
 
+  static const ExperimentalFlag recordSpreads = const ExperimentalFlag(
+    name: 'record-spreads',
+    isEnabledByDefault: false,
+    isExpired: false,
+    enabledVersion: defaultLanguageVersion,
+    experimentEnabledVersion: defaultLanguageVersion,
+    experimentReleasedVersion: defaultLanguageVersion,
+  );
+
   static const ExperimentalFlag records = const ExperimentalFlag(
     name: 'records',
     isEnabledByDefault: true,
@@ -652,6 +661,10 @@ class GlobalFeatures {
   GlobalFeature? _recordUse;
   GlobalFeature get recordUse =>
       _recordUse ??= _computeGlobalFeature(ExperimentalFlag.recordUse);
+
+  GlobalFeature? _recordSpreads;
+  GlobalFeature get recordSpreads =>
+      _recordSpreads ??= _computeGlobalFeature(ExperimentalFlag.recordSpreads);
 
   GlobalFeature? _records;
   GlobalFeature get records =>
@@ -973,6 +986,14 @@ class LibraryFeatures {
         libraryVersion,
       );
 
+  LibraryFeature? _recordSpreads;
+  LibraryFeature get recordSpreads =>
+      _recordSpreads ??= globalFeatures._computeLibraryFeature(
+        ExperimentalFlag.recordSpreads,
+        canonicalUri,
+        libraryVersion,
+      );
+
   LibraryFeature? _records;
   LibraryFeature get records =>
       _records ??= globalFeatures._computeLibraryFeature(
@@ -1144,6 +1165,8 @@ class LibraryFeatures {
         return privateNamedParameters;
       case shared.ExperimentalFlag.recordUse:
         return recordUse;
+      case shared.ExperimentalFlag.recordSpreads:
+        return recordSpreads;
       case shared.ExperimentalFlag.records:
         return records;
       case shared.ExperimentalFlag.sealedClass:
@@ -1240,6 +1263,8 @@ ExperimentalFlag? parseExperimentalFlag(String flag) {
       return ExperimentalFlag.privateNamedParameters;
     case "record-use":
       return ExperimentalFlag.recordUse;
+    case "record-spreads":
+      return ExperimentalFlag.recordSpreads;
     case "records":
       return ExperimentalFlag.records;
     case "sealed-class":
@@ -1329,6 +1354,8 @@ final Map<ExperimentalFlag, bool> defaultExperimentalFlags = {
   ExperimentalFlag.privateNamedParameters:
       ExperimentalFlag.privateNamedParameters.isEnabledByDefault,
   ExperimentalFlag.recordUse: ExperimentalFlag.recordUse.isEnabledByDefault,
+  ExperimentalFlag.recordSpreads:
+      ExperimentalFlag.recordSpreads.isEnabledByDefault,
   ExperimentalFlag.records: ExperimentalFlag.records.isEnabledByDefault,
   ExperimentalFlag.sealedClass: ExperimentalFlag.sealedClass.isEnabledByDefault,
   ExperimentalFlag.setLiterals: ExperimentalFlag.setLiterals.isEnabledByDefault,
@@ -1403,6 +1430,7 @@ ExperimentalFlag fromSharedExperimentalFlag(
   shared.ExperimentalFlag.privateNamedParameters =>
     ExperimentalFlag.privateNamedParameters,
   shared.ExperimentalFlag.recordUse => ExperimentalFlag.recordUse,
+  shared.ExperimentalFlag.recordSpreads => ExperimentalFlag.recordSpreads,
   shared.ExperimentalFlag.records => ExperimentalFlag.records,
   shared.ExperimentalFlag.sealedClass => ExperimentalFlag.sealedClass,
   shared.ExperimentalFlag.setLiterals => ExperimentalFlag.setLiterals,

@@ -13764,12 +13764,17 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         return result;
       }
     }
-    return inferVariableGet(
-      variable: node.expressionVariable as InternalExpressionVariable,
-      typeContext: typeContext,
-      nameOffset: node.fileOffset,
-      node: node,
-    );
+    if (node.expressionVariable is InternalExpressionVariable) {
+      return inferVariableGet(
+        variable: node.expressionVariable as InternalExpressionVariable,
+        typeContext: typeContext,
+        nameOffset: node.fileOffset,
+        node: node,
+      );
+    }
+    // Synthesized variable (e.g., from record spread desugaring) — type is
+    // already set, no promotion or late-variable handling needed.
+    return new ExpressionInferenceResult(node.expressionVariable.type, node);
   }
 
   @override

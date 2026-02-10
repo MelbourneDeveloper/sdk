@@ -52,6 +52,7 @@ final _knownFeatures = <String, ExperimentalFeature>{
   EnableString.private_named_parameters:
       ExperimentalFeatures.private_named_parameters,
   EnableString.record_use: ExperimentalFeatures.record_use,
+  EnableString.record_spreads: ExperimentalFeatures.record_spreads,
   EnableString.records: ExperimentalFeatures.records,
   EnableString.sealed_class: ExperimentalFeatures.sealed_class,
   EnableString.set_literals: ExperimentalFeatures.set_literals,
@@ -122,6 +123,7 @@ Feature fromSharedExperimentalFlags(
   shared.ExperimentalFlag.privateNamedParameters =>
     ExperimentalFeatures.private_named_parameters,
   shared.ExperimentalFlag.recordUse => ExperimentalFeatures.record_use,
+  shared.ExperimentalFlag.recordSpreads => ExperimentalFeatures.record_spreads,
   shared.ExperimentalFlag.records => ExperimentalFeatures.records,
   shared.ExperimentalFlag.sealedClass => ExperimentalFeatures.sealed_class,
   shared.ExperimentalFlag.setLiterals => ExperimentalFeatures.set_literals,
@@ -240,6 +242,9 @@ class EnableString {
 
   /// String to enable the experiment "record-use"
   static const String record_use = 'record-use';
+
+  /// String to enable the experiment "record-spreads"
+  static const String record_spreads = 'record-spreads';
 
   /// String to enable the experiment "records"
   static const String records = 'records';
@@ -631,8 +636,19 @@ class ExperimentalFeatures {
     channels: ["main", "dev"],
   );
 
-  static final records = ExperimentalFeature(
+  static final record_spreads = ExperimentalFeature(
     index: 31,
+    enableString: EnableString.record_spreads,
+    isEnabledByDefault: IsEnabledByDefault.record_spreads,
+    isExpired: IsExpired.record_spreads,
+    documentation: 'Allow spreading record values into record literals.',
+    experimentalReleaseVersion: null,
+    releaseVersion: null,
+    channels: ["stable", "beta", "dev", "main"],
+  );
+
+  static final records = ExperimentalFeature(
+    index: 32,
     enableString: EnableString.records,
     isEnabledByDefault: IsEnabledByDefault.records,
     isExpired: IsExpired.records,
@@ -643,7 +659,7 @@ class ExperimentalFeatures {
   );
 
   static final sealed_class = ExperimentalFeature(
-    index: 32,
+    index: 33,
     enableString: EnableString.sealed_class,
     isEnabledByDefault: IsEnabledByDefault.sealed_class,
     isExpired: IsExpired.sealed_class,
@@ -654,7 +670,7 @@ class ExperimentalFeatures {
   );
 
   static final set_literals = ExperimentalFeature(
-    index: 33,
+    index: 34,
     enableString: EnableString.set_literals,
     isEnabledByDefault: IsEnabledByDefault.set_literals,
     isExpired: IsExpired.set_literals,
@@ -665,7 +681,7 @@ class ExperimentalFeatures {
   );
 
   static final sound_flow_analysis = ExperimentalFeature(
-    index: 34,
+    index: 35,
     enableString: EnableString.sound_flow_analysis,
     isEnabledByDefault: IsEnabledByDefault.sound_flow_analysis,
     isExpired: IsExpired.sound_flow_analysis,
@@ -677,7 +693,7 @@ class ExperimentalFeatures {
   );
 
   static final spread_collections = ExperimentalFeature(
-    index: 35,
+    index: 36,
     enableString: EnableString.spread_collections,
     isEnabledByDefault: IsEnabledByDefault.spread_collections,
     isExpired: IsExpired.spread_collections,
@@ -688,7 +704,7 @@ class ExperimentalFeatures {
   );
 
   static final static_extensions = ExperimentalFeature(
-    index: 36,
+    index: 37,
     enableString: EnableString.static_extensions,
     isEnabledByDefault: IsEnabledByDefault.static_extensions,
     isExpired: IsExpired.static_extensions,
@@ -699,7 +715,7 @@ class ExperimentalFeatures {
   );
 
   static final super_parameters = ExperimentalFeature(
-    index: 37,
+    index: 38,
     enableString: EnableString.super_parameters,
     isEnabledByDefault: IsEnabledByDefault.super_parameters,
     isExpired: IsExpired.super_parameters,
@@ -710,7 +726,7 @@ class ExperimentalFeatures {
   );
 
   static final test_experiment = ExperimentalFeature(
-    index: 38,
+    index: 39,
     enableString: EnableString.test_experiment,
     isEnabledByDefault: IsEnabledByDefault.test_experiment,
     isExpired: IsExpired.test_experiment,
@@ -722,7 +738,7 @@ class ExperimentalFeatures {
   );
 
   static final triple_shift = ExperimentalFeature(
-    index: 39,
+    index: 40,
     enableString: EnableString.triple_shift,
     isEnabledByDefault: IsEnabledByDefault.triple_shift,
     isExpired: IsExpired.triple_shift,
@@ -733,7 +749,7 @@ class ExperimentalFeatures {
   );
 
   static final unnamed_libraries = ExperimentalFeature(
-    index: 40,
+    index: 41,
     enableString: EnableString.unnamed_libraries,
     isEnabledByDefault: IsEnabledByDefault.unnamed_libraries,
     isExpired: IsExpired.unnamed_libraries,
@@ -744,7 +760,7 @@ class ExperimentalFeatures {
   );
 
   static final unquoted_imports = ExperimentalFeature(
-    index: 41,
+    index: 42,
     enableString: EnableString.unquoted_imports,
     isEnabledByDefault: IsEnabledByDefault.unquoted_imports,
     isExpired: IsExpired.unquoted_imports,
@@ -755,7 +771,7 @@ class ExperimentalFeatures {
   );
 
   static final variance = ExperimentalFeature(
-    index: 42,
+    index: 43,
     enableString: EnableString.variance,
     isEnabledByDefault: IsEnabledByDefault.variance,
     isExpired: IsExpired.variance,
@@ -766,7 +782,7 @@ class ExperimentalFeatures {
   );
 
   static final wildcard_variables = ExperimentalFeature(
-    index: 43,
+    index: 44,
     enableString: EnableString.wildcard_variables,
     isEnabledByDefault: IsEnabledByDefault.wildcard_variables,
     isExpired: IsExpired.wildcard_variables,
@@ -873,6 +889,9 @@ class IsEnabledByDefault {
 
   /// Default state of the experiment "record-use"
   static const bool record_use = false;
+
+  /// Default state of the experiment "record-spreads"
+  static const bool record_spreads = false;
 
   /// Default state of the experiment "records"
   static const bool records = true;
@@ -1010,6 +1029,9 @@ class IsExpired {
 
   /// Expiration status of the experiment "record-use"
   static const bool record_use = false;
+
+  /// Expiration status of the experiment "record-spreads"
+  static const bool record_spreads = false;
 
   /// Expiration status of the experiment "records"
   static const bool records = true;
@@ -1160,6 +1182,9 @@ mixin _CurrentState {
 
   /// Current state for the flag "record-use"
   bool get record_use => isEnabled(ExperimentalFeatures.record_use);
+
+  /// Current state for the flag "record-spreads"
+  bool get record_spreads => isEnabled(ExperimentalFeatures.record_spreads);
 
   /// Current state for the flag "records"
   bool get records => isEnabled(ExperimentalFeatures.records);

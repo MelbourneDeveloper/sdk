@@ -258,6 +258,14 @@ enum ExperimentalFlag {
     experimentReleasedVersion: defaultLanguageVersion,
   ),
 
+  recordSpreads(
+    name: 'record-spreads',
+    isEnabledByDefault: false,
+    isExpired: false,
+    experimentEnabledVersion: defaultLanguageVersion,
+    experimentReleasedVersion: defaultLanguageVersion,
+  ),
+
   records(
     name: 'records',
     isEnabledByDefault: true,
