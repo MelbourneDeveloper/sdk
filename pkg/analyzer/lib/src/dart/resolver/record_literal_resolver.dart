@@ -181,7 +181,9 @@ class RecordLiteralResolver {
               if (index != null) {
                 if (index < positionalCount) {
                   _diagnosticReporter.report(
-                    diag.invalidFieldNamePositional.at(field.spreadOperator),
+                    diag.recordSpreadPositionalNameClash
+                        .withArguments(name: name)
+                        .at(field.spreadOperator),
                   );
                 }
               } else if (isForbiddenNameForRecordField(name)) {

@@ -876,6 +876,7 @@ const List<DiagnosticCode> diagnosticCodeValues = [
   diag.recordSpreadDuplicateNamedField,
   diag.recordSpreadNotRecordType,
   diag.recordSpreadNullAwareNotSupported,
+  diag.recordSpreadPositionalNameClash,
   diag.recordTypeOnePositionalNoTrailingComma,
   diag.recursiveCompileTimeConstant,
   diag.recursiveConstantConstructor,

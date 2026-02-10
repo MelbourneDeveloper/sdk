@@ -2794,8 +2794,9 @@ CompileTimeErrorCode:
       incompatibility, rather than at parse time.
   recordSpreadNotRecordType:
     type: compileTimeError
+    hasPublishedDocs: false
     parameters:
-      DartType type: the type of the spread expression
+      Type type: the type of the spread expression
     problemMessage: "A spread expression in a record literal must have a record type, but has type '#type'."
     correctionMessage: "Try using an expression with a concrete record type."
     comment: |-
@@ -2803,6 +2804,7 @@ CompileTimeErrorCode:
       0: the type of the spread expression
   recordSpreadDuplicateNamedField:
     type: compileTimeError
+    hasPublishedDocs: false
     parameters:
       String name: the duplicated field name
     problemMessage: "The named field '#name' from the spread conflicts with another field with the same name."
@@ -2812,9 +2814,20 @@ CompileTimeErrorCode:
       0: the duplicated field name
   recordSpreadNullAwareNotSupported:
     type: compileTimeError
+    hasPublishedDocs: false
     parameters: none
     problemMessage: "Null-aware spread '...?' is not supported in record literals."
     correctionMessage: "Handle null before spreading, or use a non-nullable expression."
+  recordSpreadPositionalNameClash:
+    type: compileTimeError
+    hasPublishedDocs: false
+    parameters:
+      String name: the name of the clashing field
+    problemMessage: "The named field '#name' from the spread clashes with a positional field getter."
+    correctionMessage: "Try renaming the field or restructuring the record."
+    comment: |-
+      Parameters:
+      0: the name of the clashing field
   setElementFromDeferredLibrary:
     type: compileTimeError
     parameters: none
