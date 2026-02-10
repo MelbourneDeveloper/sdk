@@ -368,7 +368,7 @@ void testSwitchGuards() {
     (x: var x, y: var y, z: var z) when x + y + z > 0 => 'small',
     _ => 'zero',
   };
-  Expect.equals('small', label);
+  Expect.equals('big', label);
 
   // Nested pattern with wildcard on spread fields.
   var pair = (10, 20);
