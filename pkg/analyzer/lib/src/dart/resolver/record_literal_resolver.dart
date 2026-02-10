@@ -84,19 +84,28 @@ class RecordLiteralResolver {
   /// Report any named fields in the record literal [node] that use a previously
   /// defined name, including named fields contributed by spread expressions.
   void _reportDuplicateFieldDefinitions(RecordLiteralImpl node) {
-    var usedNames = <String, NamedExpression>{};
+    var usedNames = <String, Expression>{};
     for (var field in node.fields) {
       if (field is NamedExpressionImpl) {
         var name = field.name.label.name;
         var previousField = usedNames[name];
         if (previousField != null) {
-          _diagnosticReporter.report(
-            DiagnosticFactory().duplicateFieldDefinitionInLiteral(
-              _diagnosticReporter.source,
-              field,
-              previousField,
-            ),
-          );
+          if (previousField is NamedExpression) {
+            _diagnosticReporter.report(
+              DiagnosticFactory().duplicateFieldDefinitionInLiteral(
+                _diagnosticReporter.source,
+                field,
+                previousField,
+              ),
+            );
+          } else {
+            // Previous field came from a spread.
+            _diagnosticReporter.report(
+              diag.recordSpreadDuplicateNamedField
+                  .withArguments(name: name)
+                  .at(field),
+            );
+          }
         } else {
           usedNames[name] = field;
         }
@@ -106,11 +115,16 @@ class RecordLiteralResolver {
         if (spreadType is RecordTypeImpl) {
           for (var namedField in spreadType.namedFields) {
             if (usedNames.containsKey(namedField.name)) {
-              // TODO(record-spreads): Report RECORD_SPREAD_DUPLICATE_NAMED_FIELD
-              // with a diagnostic pointing at the spread operator.
+              _diagnosticReporter.report(
+                diag.recordSpreadDuplicateNamedField
+                    .withArguments(name: namedField.name)
+                    .at(field.spreadOperator),
+              );
+            } else {
+              // Track the spread operator as a stand-in for the contributed
+              // named field so later explicit fields can detect the clash.
+              usedNames[namedField.name] = field;
             }
-            // Don't add to usedNames here — we can't point at a specific
-            // NamedExpression node for spread-contributed fields.
           }
         }
       }
@@ -246,13 +260,19 @@ class RecordLiteralResolver {
     // field shapes must be statically known — you cannot conditionally
     // include/exclude fields. Report an error per Step 12.
     if (field.isNullAware) {
-      // TODO(record-spreads): Report RECORD_SPREAD_NULL_AWARE_NOT_ALLOWED.
+      _diagnosticReporter.report(
+        diag.recordSpreadNullAwareNotSupported.at(field.spreadOperator),
+      );
       return;
     }
 
     // Validate: must be a concrete record type.
     if (spreadType is! RecordTypeImpl) {
-      // TODO(record-spreads): Report RECORD_SPREAD_NOT_RECORD_TYPE error.
+      _diagnosticReporter.report(
+        diag.recordSpreadNotRecordType
+            .withArguments(type: spreadType)
+            .at(field),
+      );
       return;
     }
 

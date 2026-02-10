@@ -953,3 +953,102 @@ dart pkg/front_end/tool/update_expectations.dart
 **First round:** Steps 1, 2, 4, 5a-b, 6a-b, 7, 8, 10, 11, 12, 13. This gets record literal spreading fully working across CFE and analyzer.
 
 **Second round (deferred):** Steps 3, 5c, 6c-d, 9, 13b, 14. Adds argument list spreading on top of the first round.
+
+---
+
+## Gaps: Plan vs. Issue #2128
+
+*Reviewed 2026-02-10 against [dart-lang/language#2128](https://github.com/dart-lang/language/issues/2128) and all comments.*
+
+### Overall Verdict
+
+The plan **directly and correctly** implements the core proposal from issue #2128. The architecture (static desugaring during type inference, no backend changes, null-aware rejection) precisely matches the design discussed in the issue. However, there are **7 concrete gaps** between what the plan specifies and what the code actually delivers:
+
+### Gap 1: Missing Experiment Flag Guard (MUST FIX)
+
+**Plan says (Step 6a):** `reportIfNotEnabled(libraryFeatures.recordSpreads, ...)` in `handleRecordSpreadField`.
+
+**Code has:** A `TODO(christianfindlay)` comment instead. The feature currently works *without* `--enable-experiment=record-spreads` at the CFE level. The parser parses `...` regardless of the flag, and the body builder doesn't gate it.
+
+**File:** `pkg/front_end/lib/src/kernel/body_builder.dart:7686`
+
+**Risk:** High — users on older SDKs or without the flag could accidentally use the feature.
+
+### Gap 2: Null-Aware `...?` Error Not Emitted in CFE (MUST FIX)
+
+**Plan says (Step 12):** Report `recordSpreadNullAwareNotSupported` error when `...?` is used.
+
+**Code has:** The `_expandRecordSpreads()` method in `inference_visitor.dart` never checks `element.isNullAware`. The message `recordSpreadNullAwareNotSupported` is defined in `messages.yaml` and generated in `diagnostic.g.dart`, but **never emitted** anywhere in the CFE type inference path. A `...?` spread will currently be silently accepted and treated identically to `...`.
+
+**File:** `pkg/front_end/lib/src/type_inference/inference_visitor.dart` — the `_expandRecordSpreads` loop
+
+**Risk:** High — contradicts the issue's design requirement that record shapes be statically known.
+
+### Gap 3: `recordSpreadPositionalNameClash` Never Emitted (SHOULD FIX)
+
+**Plan says (Step 8e):** After expansion, check that named fields from spreads don't clash with positional field getters (`$1`, `$2`, etc.).
+
+**Code has:** The message `recordSpreadPositionalNameClash` is defined in `messages.yaml` and generated, but **never emitted** in either the CFE or the analyzer. If a spread contributes a named field `$1` that clashes with a positional field getter, no error is reported.
+
+**Files:** `inference_visitor.dart`, `record_literal_resolver.dart`
+
+**Risk:** Medium — unlikely in practice but violates the records spec's prohibition on `$N` named fields.
+
+### Gap 4: Analyzer Errors Are Placeholder TODOs (SHOULD FIX)
+
+The analyzer's `record_literal_resolver.dart` has **5 TODO comments** where real error reporting should occur:
+
+1. `TODO(record-spreads): Report RECORD_SPREAD_DUPLICATE_NAMED_FIELD` (line 109)
+2. `TODO(record-spreads): Also validate named fields from spreads` — private names, forbidden names, positional clashes (line 156)
+3. `TODO(record-spreads): Report RECORD_SPREAD_NULL_AWARE_NOT_ALLOWED` (line 249)
+4. `TODO(record-spreads): Report RECORD_SPREAD_NOT_RECORD_TYPE error` (line 255)
+5. `TODO(record-spreads): Add visitRecordSpreadField to AstVisitor` in `ast.dart` (line 23862)
+
+The error messages are defined in `pkg/analyzer/messages.yaml` but the resolver methods return early or skip instead of actually emitting them.
+
+**Risk:** Medium — the analyzer will not flag user errors; only the CFE will (and even the CFE is missing some, per Gap 2-3).
+
+### Gap 5: `RecordSpreadFieldImpl.accept()` Delegates Instead of Having Proper Visitor (SHOULD FIX)
+
+**Plan says (Step 10a):** Add proper visitor support.
+
+**Code has:** `RecordSpreadFieldImpl.accept()` delegates to `expression.accept(visitor)` with a TODO. This means AST visitors (linter rules, code fixes, refactorings) won't see the spread node — they'll only see the inner expression. The `@GenerateNodeImpl` annotation won't generate visitor methods until a proper `visitRecordSpreadField` is added to `AstVisitor`.
+
+**File:** `pkg/analyzer/lib/src/dart/ast/ast.dart:23862`
+
+### Gap 6: Argument List Spreading Deferred (KNOWN, PER PLAN)
+
+**Issue says:** "It would also work in argument lists." @munificent emphatically agrees.
+
+**Plan says:** Deferred to Round 2.
+
+This is an acknowledged, deliberate deferral — not a bug. The plan's Round 2 steps (3, 5c, 6c-d, 9) cover this completely. Noted here for completeness since the issue treats argument list spreading as a core part of the proposal.
+
+### Gap 7: Named Field Validation from Spreads Incomplete in CFE (SHOULD FIX)
+
+**Plan says (Step 8e):** After expansion, validate that spread-contributed named fields don't clash with Object members (`hashCode`, `toString`, etc.), don't start with `_`, and don't use the `$N` pattern.
+
+**Code has:** The `_expandRecordSpreads()` method checks for duplicate names across spreads, but does **not** check for:
+- Forbidden Object member names (`hashCode`, `runtimeType`, `toString`, `noSuchMethod`, `==`)
+- Private names starting with `_`
+- The `$N` positional getter pattern (same as Gap 3)
+
+These checks exist in `endRecordLiteral()` for non-spread fields but are bypassed for spread-contributed fields.
+
+**File:** `pkg/front_end/lib/src/type_inference/inference_visitor.dart`
+
+**Risk:** Low in practice — a record type with forbidden named fields would have been rejected when the spread source record was itself created. But for robustness, these checks should still be performed on the expanded result.
+
+---
+
+### Summary Table
+
+| # | Gap | Severity | Status |
+|---|-----|----------|--------|
+| 1 | Missing `reportIfNotEnabled` experiment flag guard | **MUST FIX** | Code has TODO |
+| 2 | `...?` null-aware error not emitted in CFE | **MUST FIX** | Message defined, never used |
+| 3 | `$N` positional name clash check missing | SHOULD FIX | Message defined, never used |
+| 4 | Analyzer errors are placeholder TODOs (5 instances) | SHOULD FIX | TODOs in code |
+| 5 | No `visitRecordSpreadField` in AstVisitor | SHOULD FIX | TODO in code |
+| 6 | Argument list spreading deferred | KNOWN | Per plan, Round 2 |
+| 7 | Forbidden/private name validation for spread fields in CFE | SHOULD FIX | Not implemented |

@@ -14041,7 +14041,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
   /// [Expression] and [NamedExpression] entries — all spreads are gone.
   ///
   /// Returns a list of hoisted [VariableDeclaration]s for spread expressions
-  /// that need single-evaluation semantics, or `null` if none.
+  /// that need single-evaluation semantics, or `null` if there are no spreads.
   List<VariableDeclaration>? _expandRecordSpreads(
     InternalRecordLiteral node,
   ) {
@@ -14063,6 +14063,21 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
     for (Object element in originalOrder) {
       if (element is RecordSpreadElement) {
+        // Null-aware spread (...?) is not supported for records.
+        if (element.isNullAware) {
+          newPositional.add(
+            problemReporting.buildProblem(
+              compilerContext: compilerContext,
+              message: diag.recordSpreadNullAwareNotSupported,
+              fileUri: fileUri,
+              fileOffset: element.fileOffset,
+              length: 4, // length of '...?'
+            ),
+          );
+          newOriginalOrder.add(newPositional.last);
+          continue;
+        }
+
         // Infer the type of the spread expression.
         ExpressionInferenceResult spreadResult = inferExpression(
           element.expression,
@@ -14110,10 +14125,28 @@ class InferenceVisitorImpl extends InferenceVisitorBase
           hoisted.add(temp);
         }
 
+        bool isFirstReceiverUse = true;
         Expression receiver() {
           if (temp != null) {
             return createVariableGet(temp);
           }
+          // Const case: no temp variable. Return the original for the first
+          // use; clone for subsequent uses to avoid sharing the same
+          // Expression node as a child of multiple parents.
+          if (isFirstReceiverUse) {
+            isFirstReceiverUse = false;
+            return spreadExpr;
+          }
+          if (isPureExpression(spreadExpr)) {
+            return clonePureExpression(spreadExpr);
+          }
+          // ConstantExpression: create a fresh wrapper over the same Constant.
+          if (spreadExpr case ConstantExpression constExpr) {
+            return ConstantExpression(constExpr.constant, constExpr.type)
+              ..fileOffset = constExpr.fileOffset;
+          }
+          // General fallback: return the original. This may cause parent
+          // pointer issues but const evaluation still works via nodeCache.
           return spreadExpr;
         }
 
@@ -14188,7 +14221,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       ..clear()
       ..addAll(newOriginalOrder);
 
-    return hoisted;
+    return hoisted.isNotEmpty ? hoisted : null;
   }
 
   ExpressionInferenceResult visitInternalRecordLiteral(

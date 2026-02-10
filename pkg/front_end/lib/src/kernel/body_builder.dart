@@ -7683,8 +7683,11 @@ class BodyBuilderImpl extends StackListenerImpl
   @override
   void handleRecordSpreadField(Token spreadToken) {
     debugEvent("RecordSpreadField");
-    // TODO(christianfindlay): Guard behind recordSpreads experiment flag once
-    // code generation is enabled.
+    reportIfNotEnabled(
+      libraryFeatures.recordSpreads,
+      spreadToken.charOffset,
+      spreadToken.charCount,
+    );
     Expression value = popForValue();
     push(RecordSpreadElement(
       value,
