@@ -14214,6 +14214,23 @@ class InferenceVisitorImpl extends InferenceVisitorBase
       }
     }
 
+    // Check for $N positional name clashes from spread-contributed fields.
+    // Body builder already checks direct named fields against the pre-expansion
+    // positional count, but spreads may contribute named fields like $1 that
+    // clash with the expanded positional count.
+    for (String name in newNamedElements.keys) {
+      if (tryParseRecordPositionalGetterName(name, newPositional.length) !=
+          null) {
+        NamedExpression namedExpr = newNamedElements[name]!;
+        problemReporting.addProblem(
+          diag.recordSpreadPositionalNameClash.withArguments(name: name),
+          namedExpr.fileOffset,
+          name.length,
+          fileUri,
+        );
+      }
+    }
+
     // Replace the node's lists in-place.
     node.positional
       ..clear()

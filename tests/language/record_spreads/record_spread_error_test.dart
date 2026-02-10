@@ -43,6 +43,10 @@ void main() {
   // Spread a List (not a record).
   var list = [1, 2, 3];
   var r8 = (...list); //# 09: compile-time error
+
+  // Spread named field $1 clashes with positional getter.
+  var dollarRec = ($1: 'clash');
+  var r9 = (1, ...dollarRec); //# 10: compile-time error
 }
 
 void spreadGeneric<T extends Record>(T value) {
