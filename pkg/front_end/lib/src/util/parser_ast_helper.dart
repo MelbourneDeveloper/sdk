@@ -9671,12 +9671,10 @@ class RecordSpreadFieldHandle extends ParserAstNode {
     : super("RecordSpreadField", type);
 
   @override
-  Map<String, Object?> get deprecatedArguments =>
-      {"spreadToken": spreadToken};
+  Map<String, Object?> get deprecatedArguments => {"spreadToken": spreadToken};
 
   @override
-  R accept<R>(ParserAstVisitor<R> v) =>
-      v.visitRecordSpreadFieldHandle(this);
+  R accept<R>(ParserAstVisitor<R> v) => v.visitRecordSpreadFieldHandle(this);
 }
 
 class NewExpressionBegin extends ParserAstNode {
@@ -13861,9 +13859,8 @@ class RecursiveParserAstVisitorWithDefaultNodeAsync
   ) => defaultNode(node);
 
   @override
-  Future<void> visitRecordSpreadFieldHandle(
-    RecordSpreadFieldHandle node,
-  ) => defaultNode(node);
+  Future<void> visitRecordSpreadFieldHandle(RecordSpreadFieldHandle node) =>
+      defaultNode(node);
 
   @override
   Future<void> visitNewExpressionBegin(NewExpressionBegin node) =>

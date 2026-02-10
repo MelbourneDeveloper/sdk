@@ -17636,9 +17636,7 @@ recordSpreadDuplicateNamedField = const Template(
 );
 
 // DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
-Message _withArgumentsRecordSpreadDuplicateNamedField({
-  required String name,
-}) {
+Message _withArgumentsRecordSpreadDuplicateNamedField({required String name}) {
   var name_0 = conversions.validateAndDemangleName(name);
   return new Message(
     recordSpreadDuplicateNamedField,
@@ -17673,9 +17671,7 @@ recordSpreadPositionalNameClash = const Template(
 );
 
 // DO NOT EDIT. THIS FILE IS GENERATED. SEE TOP OF FILE.
-Message _withArgumentsRecordSpreadPositionalNameClash({
-  required String name,
-}) {
+Message _withArgumentsRecordSpreadPositionalNameClash({required String name}) {
   var name_0 = conversions.validateAndDemangleName(name);
   return new Message(
     recordSpreadPositionalNameClash,

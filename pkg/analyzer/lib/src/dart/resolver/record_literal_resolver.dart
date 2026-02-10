@@ -166,8 +166,7 @@ class RecordLiteralResolver {
             );
           }
         }
-      }
-      else if (field is RecordSpreadFieldImpl) {
+      } else if (field is RecordSpreadFieldImpl) {
         var spreadType = field.expression.staticType;
         if (spreadType is RecordTypeImpl) {
           for (var namedField in spreadType.namedFields) {
@@ -304,18 +303,13 @@ class RecordLiteralResolver {
 
     // Expand positional fields from the spread's record type.
     for (var posField in spreadType.positionalFields) {
-      positionalFields.add(
-        RecordTypePositionalFieldImpl(type: posField.type),
-      );
+      positionalFields.add(RecordTypePositionalFieldImpl(type: posField.type));
     }
 
     // Expand named fields from the spread's record type.
     for (var namedField in spreadType.namedFields) {
       namedFields.add(
-        RecordTypeNamedFieldImpl(
-          name: namedField.name,
-          type: namedField.type,
-        ),
+        RecordTypeNamedFieldImpl(name: namedField.name, type: namedField.type),
       );
     }
   }

@@ -4992,10 +4992,12 @@ class AstBuilder extends StackListener {
   void handleRecordSpreadField(Token spreadToken) {
     debugEvent("RecordSpreadField");
     var expression = pop() as ExpressionImpl;
-    push(RecordSpreadFieldImpl(
-      spreadOperator: spreadToken,
-      expression: expression,
-    ));
+    push(
+      RecordSpreadFieldImpl(
+        spreadOperator: spreadToken,
+        expression: expression,
+      ),
+    );
   }
 
   @override

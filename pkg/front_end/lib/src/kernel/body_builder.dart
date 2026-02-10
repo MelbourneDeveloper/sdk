@@ -7689,11 +7689,13 @@ class BodyBuilderImpl extends StackListenerImpl
       spreadToken.charCount,
     );
     Expression value = popForValue();
-    push(RecordSpreadElement(
-      value,
-      isNullAware: spreadToken.lexeme == '...?',
-      fileOffset: spreadToken.charOffset,
-    ));
+    push(
+      RecordSpreadElement(
+        value,
+        isNullAware: spreadToken.lexeme == '...?',
+        fileOffset: spreadToken.charOffset,
+      ),
+    );
   }
 
   @override

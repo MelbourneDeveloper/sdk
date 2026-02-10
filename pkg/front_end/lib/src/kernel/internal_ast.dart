@@ -5007,7 +5007,8 @@ class InternalRecordLiteral extends InternalExpression {
   final List<Expression> positional;
   final List<NamedExpression> named;
   final Map<String, NamedExpression>? namedElements;
-  final List<Object /*Expression|NamedExpression|RecordSpreadElement*/> originalElementOrder;
+  final List<Object /*Expression|NamedExpression|RecordSpreadElement*/>
+  originalElementOrder;
   final bool isConst;
 
   InternalRecordLiteral(

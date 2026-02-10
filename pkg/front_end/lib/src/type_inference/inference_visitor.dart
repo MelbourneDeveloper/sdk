@@ -14112,8 +14112,7 @@ class InferenceVisitorImpl extends InferenceVisitorBase
         // can handle (already-inferred Kernel expressions like
         // StaticInvocation crash when re-inferred).
         VariableDeclaration? temp;
-        int fieldCount =
-            recordType.positional.length + recordType.named.length;
+        int fieldCount = recordType.positional.length + recordType.named.length;
         if (fieldCount >= 1 && !node.isConst) {
           // Use VariableDeclarationImpl (not createVariable) because the
           // VariableGet receivers of the expanded RecordIndexGet/RecordNameGet
@@ -14156,11 +14155,8 @@ class InferenceVisitorImpl extends InferenceVisitorBase
 
         // Expand positional fields.
         for (int i = 0; i < recordType.positional.length; i++) {
-          Expression fieldAccess = RecordIndexGet(
-            receiver(),
-            recordType,
-            i,
-          )..fileOffset = element.fileOffset;
+          Expression fieldAccess = RecordIndexGet(receiver(), recordType, i)
+            ..fileOffset = element.fileOffset;
           newPositional.add(fieldAccess);
           newOriginalOrder.add(fieldAccess);
         }
