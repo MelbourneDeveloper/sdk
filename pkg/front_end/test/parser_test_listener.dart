@@ -3836,6 +3836,15 @@ class ParserTestListener implements Listener {
   }
 
   @override
+  void handleRecordSpreadField(Token spreadToken) {
+    seen(spreadToken);
+    doPrint(
+      'handleRecordSpreadField('
+      '$spreadToken)',
+    );
+  }
+
+  @override
   void handlePositionalRecordField(Token token) {
     seen(token);
     doPrint(
